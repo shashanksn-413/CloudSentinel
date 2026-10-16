@@ -1,3 +1,5 @@
+import base64
+import gzip
 import json
 import logging
 from src.detection.rules import (
@@ -7,11 +9,12 @@ from src.detection.rules import (
     s3_enumeration,
     security_group_modification,
     impossible_travel,
-    new_ip_access_key
+    new_ip_access_key,
+    network_scanning
 )
 from src.triage.ai_triage import triage_alert
 from src.response.response_handler import handle_response
-from src.shared.db_helpers import store_alert, store_actor_history
+from src.shared.db_helpers import store_alert, save_alert, store_actor_history
 from src.shared.constants import SNS_TOPIC_ARN
 
 import boto3
@@ -31,56 +34,29 @@ RULES = [
     new_ip_access_key
 ]
 
+FLOW_LOG_FIELDS = [
+    "version", "account-id", "interface-id", "srcaddr", "dstaddr",
+    "srcport", "dstport", "protocol", "packets", "bytes",
+    "start", "end", "action", "log-status"
+]
+
 
 def lambda_handler(event, context):
     """Main Lambda entry point — orchestrates detection, triage, and response."""
     logger.info(f"CloudSentinel received event: {json.dumps(event)}")
 
+    if "awslogs" in event:
+        detections = detect_flow_log_threats(event)
+    else:
+        detections = detect_cloudtrail_threats(event)
+
     results = []
 
-    for rule in RULES:
+    for result in detections:
         try:
-            result = rule.evaluate(event)
-            if result:
-                alert = store_alert(result)
-                logger.info(f"ALERT: {alert['rule_name']} - {alert['description']}")
-
-                actor_id = result.get("actor", "unknown")
-                store_actor_history(actor_id, alert)
-                source_ip = result.get("source_ip", "unknown")
-                if source_ip != actor_id and source_ip != "unknown":
-                    store_actor_history(source_ip, alert)
-
-                try:
-                    triage_result = triage_alert(alert)
-                    alert["triage_output"] = json.dumps(triage_result)
-                    logger.info(f"TRIAGE: {triage_result}")
-                except Exception as e:
-                    logger.error(f"Triage failed: {str(e)}")
-                    triage_result = {"severity_score": 3, "recommended_action": "monitor"}
-                    alert["triage_output"] = json.dumps(triage_result)
-
-                response_result = None
-                if triage_result.get("severity_score", 0) >= 3:
-                    try:
-                        response_result = handle_response(alert)
-                        alert["response_action"] = json.dumps(response_result)
-                        logger.info(f"RESPONSE: {response_result}")
-                    except Exception as e:
-                        logger.error(f"Response failed: {str(e)}")
-
-                send_sns_alert(alert, triage_result)
-
-                results.append({
-                    "alert_id": alert["alert_id"],
-                    "rule_name": alert["rule_name"],
-                    "severity": alert["severity"],
-                    "triage": triage_result,
-                    "response": response_result
-                })
-
+            results.append(process_detection(result))
         except Exception as e:
-            logger.error(f"Error in rule {rule.__name__}: {str(e)}")
+            logger.error(f"Error processing {result.get('rule_name', 'unknown')} alert: {str(e)}")
 
     if not results:
         return {
@@ -94,6 +70,83 @@ def lambda_handler(event, context):
             "message": f"Processed {len(results)} alert(s)",
             "results": results
         }, default=str)
+    }
+
+
+def detect_cloudtrail_threats(event):
+    """Run every CloudTrail detection rule against an EventBridge event."""
+    detections = []
+
+    for rule in RULES:
+        try:
+            result = rule.evaluate(event)
+            if result:
+                detections.append(result)
+        except Exception as e:
+            logger.error(f"Error in rule {rule.__name__}: {str(e)}")
+
+    return detections
+
+
+def detect_flow_log_threats(event):
+    """Run network scanning detection on VPC Flow Logs delivered by a CloudWatch Logs subscription."""
+    payload = json.loads(gzip.decompress(base64.b64decode(event["awslogs"]["data"])))
+    if payload.get("messageType") != "DATA_MESSAGE":
+        return []
+
+    detections = []
+
+    for log_event in payload.get("logEvents", []):
+        record = dict(zip(FLOW_LOG_FIELDS, log_event.get("message", "").split()))
+        try:
+            result = network_scanning.evaluate_flow_log(record)
+            if result:
+                detections.append(result)
+        except Exception as e:
+            logger.error(f"Error in rule network_scanning: {str(e)}")
+
+    return detections
+
+
+def process_detection(result):
+    """Store, triage, respond to, and notify on a single detection."""
+    alert = store_alert(result)
+    logger.info(f"ALERT: {alert['rule_name']} - {alert['description']}")
+
+    try:
+        triage_result = triage_alert(alert)
+        alert["triage_output"] = json.dumps(triage_result)
+        logger.info(f"TRIAGE: {triage_result}")
+    except Exception as e:
+        logger.error(f"Triage failed: {str(e)}")
+        triage_result = {"severity_score": 3, "recommended_action": "monitor"}
+        alert["triage_output"] = json.dumps(triage_result)
+
+    response_result = None
+    if triage_result.get("severity_score", 0) >= 3:
+        try:
+            response_result = handle_response(alert)
+            alert["response_action"] = json.dumps(response_result)
+            logger.info(f"RESPONSE: {response_result}")
+        except Exception as e:
+            logger.error(f"Response failed: {str(e)}")
+
+    save_alert(alert)
+
+    actor_id = result.get("actor", "unknown")
+    store_actor_history(actor_id, alert)
+    source_ip = result.get("source_ip", "unknown")
+    if source_ip != actor_id and source_ip != "unknown":
+        store_actor_history(source_ip, alert)
+
+    send_sns_alert(alert, triage_result)
+
+    return {
+        "alert_id": alert["alert_id"],
+        "rule_name": alert["rule_name"],
+        "severity": alert["severity"],
+        "triage": triage_result,
+        "response": response_result
     }
 
 

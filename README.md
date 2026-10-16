@@ -173,7 +173,8 @@ CloudSentinel integrates a stateful AI triage agent powered by OpenAI GPT-4o-min
 5. Set `OPENAI_API_KEY` as a Lambda environment variable
 6. Attach IAM policies: DynamoDB, SNS, IAM, EC2 full access to the Lambda execution role
 7. Create an EventBridge rule on the default bus with the event pattern filtering `aws.iam`, `aws.s3`, `aws.ec2`, `aws.signin` sources
-8. Configure AWS credentials locally and run the dashboard: `streamlit run dashboard/app.py`
+8. Send VPC Flow Logs (default format) to a CloudWatch Logs group and add a subscription filter that targets the same Lambda function, so the network scanning rule receives them
+9. Configure AWS credentials locally and run the dashboard: `streamlit run dashboard/app.py`
 
 ---
 
@@ -183,7 +184,6 @@ CloudSentinel integrates a stateful AI triage agent powered by OpenAI GPT-4o-min
 ├── lambda_function.py                  # Main Lambda entry point
 ├── src/
 │   ├── detection/
-│   │   ├── detection_engine.py         # Core detection engine
 │   │   └── rules/
 │   │       ├── brute_force.py
 │   │       ├── root_account_usage.py

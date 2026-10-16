@@ -35,6 +35,7 @@ def evaluate_flow_log(flow_log_record):
     unique_ports = set(r["port"] for r in rejected_connections[source_ip])
 
     if reject_count >= SCAN_THRESHOLD and len(unique_ports) >= 5:
+        rejected_connections[source_ip] = []
         mitre = MITRE_MAPPING["network_scanning"]
         return {
             "rule_name": "network_scanning",
