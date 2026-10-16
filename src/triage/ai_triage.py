@@ -43,13 +43,11 @@ def triage_alert(alert):
     actor_id = alert.get("actor", "unknown")
     source_ip = alert.get("source_ip", "unknown")
 
-    # Get actor history from DynamoDB
     actor_history = get_actor_history(actor_id)
     ip_history = []
     if source_ip != actor_id:
         ip_history = get_actor_history(source_ip)
 
-    # Build context for the AI agent
     user_message = json.dumps({
         "alert": {
             "rule_name": alert.get("rule_name", ""),
@@ -86,10 +84,8 @@ def triage_alert(alert):
 
         raw_output = response.choices[0].message.content.strip()
 
-        # Parse the JSON response
         triage_result = json.loads(raw_output)
 
-        # Validate required fields
         required_fields = [
             "severity_score", "severity_label", "confidence",
             "recommended_action", "reasoning"

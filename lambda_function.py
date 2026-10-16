@@ -42,18 +42,15 @@ def lambda_handler(event, context):
         try:
             result = rule.evaluate(event)
             if result:
-                # Step 1: Store alert in DynamoDB
                 alert = store_alert(result)
                 logger.info(f"ALERT: {alert['rule_name']} - {alert['description']}")
 
-                # Track actor history
                 actor_id = result.get("actor", "unknown")
                 store_actor_history(actor_id, alert)
                 source_ip = result.get("source_ip", "unknown")
                 if source_ip != actor_id and source_ip != "unknown":
                     store_actor_history(source_ip, alert)
 
-                # Step 2: AI Triage
                 try:
                     triage_result = triage_alert(alert)
                     alert["triage_output"] = json.dumps(triage_result)
@@ -63,7 +60,6 @@ def lambda_handler(event, context):
                     triage_result = {"severity_score": 3, "recommended_action": "monitor"}
                     alert["triage_output"] = json.dumps(triage_result)
 
-                # Step 3: Automated response if severity >= 3
                 response_result = None
                 if triage_result.get("severity_score", 0) >= 3:
                     try:
@@ -73,7 +69,6 @@ def lambda_handler(event, context):
                     except Exception as e:
                         logger.error(f"Response failed: {str(e)}")
 
-                # Step 4: Send SNS notification
                 send_sns_alert(alert, triage_result)
 
                 results.append({
