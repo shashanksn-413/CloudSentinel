@@ -2,14 +2,10 @@ import math
 from datetime import datetime, timezone
 from src.shared.constants import MITRE_MAPPING
 
-# In-memory tracker for last known login location per actor
 last_login = {}
 
-# Approximate IP geolocation would require an external API.
-# For this implementation, we use a lookup table for known IPs
-# and flag any login from a new IP within a short time window.
 
-MAX_TRAVEL_SPEED_KPH = 900  # Fastest commercial flight
+MAX_TRAVEL_SPEED_KPH = 900
 
 
 def haversine_km(lat1, lon1, lat2, lon2):
@@ -49,13 +45,11 @@ def evaluate(event):
     except (ValueError, AttributeError):
         event_time = datetime.now(timezone.utc)
 
-    # Check if we have a previous login for this actor
     if actor in last_login:
         prev = last_login[actor]
         prev_ip = prev["source_ip"]
         prev_time = prev["event_time"]
 
-        # If different IP within a short window, flag it
         if prev_ip != source_ip:
             time_diff_hours = (event_time - prev_time).total_seconds() / 3600
 
@@ -79,7 +73,6 @@ def evaluate(event):
                     "raw_event": str(detail)
                 }
 
-    # Update last known login
     last_login[actor] = {
         "source_ip": source_ip,
         "event_time": event_time

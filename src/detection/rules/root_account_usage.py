@@ -10,7 +10,6 @@ def evaluate(event):
     if user_identity.get("type") != "Root":
         return None
 
-    # Ignore service-level root events
     invoked_by = detail.get("userIdentity", {}).get("invokedBy", "")
     if invoked_by:
         return None

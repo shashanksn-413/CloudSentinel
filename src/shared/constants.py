@@ -1,4 +1,3 @@
-# MITRE ATT&CK Mapping for CloudSentinel Detection Rules
 MITRE_MAPPING = {
     "brute_force": {
         "technique_id": "T1110",
@@ -42,7 +41,6 @@ MITRE_MAPPING = {
     }
 }
 
-# DynamoDB Table Names
 ALERTS_TABLE = "cloudsentinel-alerts"
 ACTOR_HISTORY_TABLE = "cloudsentinel-actor-history"
 RESPONSE_LOG_TABLE = "cloudsentinel-response-log"
@@ -50,7 +48,6 @@ RESPONSE_LOG_TABLE = "cloudsentinel-response-log"
 
 SNS_TOPIC_ARN = "arn:aws:sns:us-east-2:067680447993:cloudsentinel-alerts-topic"
 
-# Severity Levels
 SEVERITY = {
     "CRITICAL": 5,
     "HIGH": 4,
@@ -59,9 +56,8 @@ SEVERITY = {
     "INFO": 1
 }
 
-# Detection Thresholds
-BRUTE_FORCE_THRESHOLD = 5          # Failed logins within window
-BRUTE_FORCE_WINDOW_MINUTES = 10    # Time window for brute force
-S3_ENUM_THRESHOLD = 10             # S3 list calls within window
-S3_ENUM_WINDOW_MINUTES = 5         # Time window for S3 enumeration
+BRUTE_FORCE_THRESHOLD = 5
+BRUTE_FORCE_WINDOW_MINUTES = 10
+S3_ENUM_THRESHOLD = 10
+S3_ENUM_WINDOW_MINUTES = 5
 SENSITIVE_PORTS = [22, 3389, 445, 3306, 5432]

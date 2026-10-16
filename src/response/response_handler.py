@@ -6,15 +6,14 @@ from src.response.ec2_isolate import isolate_instance
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-# Map rule names to response actions
 RESPONSE_MAP = {
     "brute_force_login": ["iam_key_revoke"],
     "impossible_travel": ["iam_key_revoke"],
     "iam_privilege_escalation": ["iam_key_revoke"],
     "new_ip_access_key_usage": ["iam_key_revoke"],
-    "root_account_usage": [],  # Alert only — cannot revoke root keys automatically
+    "root_account_usage": [],
     "s3_enumeration": ["iam_key_revoke"],
-    "security_group_modification": [],  # Alert only — requires manual review
+    "security_group_modification": [],
     "network_scanning": ["ec2_isolate"]
 }
 

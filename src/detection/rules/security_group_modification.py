@@ -20,7 +20,6 @@ def evaluate(event):
     source_ip = detail.get("sourceIPAddress", "unknown")
     request_params = detail.get("requestParameters", {})
 
-    # Check if any rule opens sensitive ports to 0.0.0.0/0
     ip_permissions = request_params.get("ipPermissions", {}).get("items", [])
     flagged_ports = []
 

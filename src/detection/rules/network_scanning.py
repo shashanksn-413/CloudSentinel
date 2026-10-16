@@ -1,7 +1,6 @@
 from datetime import datetime, timezone, timedelta
 from src.shared.constants import MITRE_MAPPING
 
-# In-memory tracker for rejected connections per source IP
 rejected_connections = {}
 
 SCAN_THRESHOLD = 20
@@ -28,7 +27,6 @@ def evaluate_flow_log(flow_log_record):
         "port": dest_port
     })
 
-    # Remove old entries outside the window
     rejected_connections[source_ip] = [
         r for r in rejected_connections[source_ip] if r["time"] > window_start
     ]
