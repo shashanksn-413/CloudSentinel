@@ -26,11 +26,9 @@ def evaluate(event):
     actor = user_identity.get("arn", user_identity.get("userName", "unknown"))
     source_ip = detail.get("sourceIPAddress", "unknown")
 
-    # Skip if the action was performed by root or known admin
     if user_identity.get("type") == "Root":
         return None
 
-    # Extract the target of the escalation
     request_params = detail.get("requestParameters", {})
     target_user = request_params.get("userName", "")
     target_role = request_params.get("roleName", "")

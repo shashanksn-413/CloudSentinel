@@ -19,7 +19,6 @@ logger.setLevel(logging.INFO)
 
 sns_client = boto3.client("sns", region_name="us-east-2")
 
-# All detection rules
 RULES = [
     brute_force,
     root_account_usage,
@@ -41,20 +40,16 @@ def lambda_handler(event, context):
         try:
             result = rule.evaluate(event)
             if result:
-                # Store alert in DynamoDB
                 alert = store_alert(result)
                 alerts.append(alert)
 
-                # Track actor history
                 actor_id = result.get("actor", "unknown")
                 store_actor_history(actor_id, alert)
 
-                # Also track by source IP if different from actor
                 source_ip = result.get("source_ip", "unknown")
                 if source_ip != actor_id and source_ip != "unknown":
                     store_actor_history(source_ip, alert)
 
-                # Send SNS notification
                 send_sns_alert(alert)
 
                 logger.info(f"ALERT: {alert['rule_name']} - {alert['description']}")

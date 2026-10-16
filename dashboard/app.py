@@ -5,7 +5,6 @@ import pandas as pd
 from datetime import datetime, timezone
 from boto3.dynamodb.conditions import Key, Attr
 
-# AWS Configuration
 REGION = "us-east-2"
 dynamodb = boto3.resource("dynamodb", region_name=REGION)
 alerts_table = dynamodb.Table("cloudsentinel-alerts")
@@ -18,7 +17,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom CSS
 st.markdown("""
 <style>
     .severity-critical { color: #FF0000; font-weight: bold; }
@@ -67,7 +65,6 @@ def get_actor_history(actor_id):
     return response.get("Items", [])
 
 
-# Sidebar
 st.sidebar.title("🛡️ CloudSentinel")
 st.sidebar.markdown("Cloud Threat Detection & Automated Response")
 page = st.sidebar.radio("Navigate", [
@@ -79,16 +76,13 @@ page = st.sidebar.radio("Navigate", [
     "Metrics"
 ])
 
-# Load data
 alerts = get_all_alerts()
 response_logs = get_all_response_logs()
 
-# ==================== DASHBOARD PAGE ====================
 if page == "Dashboard":
     st.title("🛡️ CloudSentinel — Security Operations Dashboard")
     st.markdown("---")
 
-    # Summary metrics
     col1, col2, col3, col4, col5 = st.columns(5)
 
     total_alerts = len(alerts)
@@ -105,7 +99,6 @@ if page == "Dashboard":
 
     st.markdown("---")
 
-    # Recent alerts
     st.subheader("Recent Alerts")
     if alerts:
         sorted_alerts = sorted(alerts, key=lambda x: x.get("timestamp", ""), reverse=True)
@@ -126,7 +119,6 @@ if page == "Dashboard":
     else:
         st.info("No alerts detected yet. Run attack simulations to generate alerts.")
 
-    # Alerts by rule
     st.markdown("---")
     st.subheader("Alerts by Detection Rule")
     if alerts:
@@ -140,7 +132,6 @@ if page == "Dashboard":
         ).sort_values("Count", ascending=False)
         st.bar_chart(df_rules.set_index("Rule"))
 
-    # Alerts by severity
     st.subheader("Alerts by Severity")
     if alerts:
         sev_counts = {}
@@ -153,12 +144,10 @@ if page == "Dashboard":
         )
         st.bar_chart(df_sev.set_index("Severity"))
 
-# ==================== ALERT FEED PAGE ====================
 elif page == "Alert Feed":
     st.title("📋 Real-Time Alert Feed")
     st.markdown("---")
 
-    # Filters
     col1, col2 = st.columns(2)
     severity_filter = col1.multiselect(
         "Filter by Severity",
@@ -211,7 +200,6 @@ elif page == "Alert Feed":
                 except (json.JSONDecodeError, TypeError):
                     st.text(str(triage))
 
-# ==================== ALERT DETAIL PAGE ====================
 elif page == "Alert Detail":
     st.title("🔍 Alert Detail View")
     st.markdown("---")
@@ -260,7 +248,6 @@ elif page == "Alert Detail":
     else:
         st.info("No alerts to display.")
 
-# ==================== ACTOR HISTORY PAGE ====================
 elif page == "Actor History":
     st.title("👤 Actor History")
     st.markdown("---")
@@ -286,7 +273,6 @@ elif page == "Actor History":
     else:
         st.info("No actors found. Run attack simulations first.")
 
-# ==================== RESPONSE LOG PAGE ====================
 elif page == "Response Log":
     st.title("⚡ Response Action Log")
     st.markdown("---")
@@ -301,7 +287,6 @@ elif page == "Response Log":
     else:
         st.info("No response actions logged yet.")
 
-# ==================== METRICS PAGE ====================
 elif page == "Metrics":
     st.title("📊 CloudSentinel Metrics")
     st.markdown("---")

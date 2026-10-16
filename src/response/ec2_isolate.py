@@ -16,10 +16,8 @@ def isolate_instance(alert, instance_id):
         return None
 
     try:
-        # Create or get the isolation security group
         isolation_sg_id = get_or_create_isolation_sg(instance_id)
 
-        # Get current security groups for logging
         instance_info = ec2_client.describe_instances(InstanceIds=[instance_id])
         reservations = instance_info.get("Reservations", [])
         if not reservations:
@@ -29,7 +27,6 @@ def isolate_instance(alert, instance_id):
         original_sgs = [sg["GroupId"] for sg in instance.get("SecurityGroups", [])]
         vpc_id = instance.get("VpcId", "")
 
-        # Replace security groups with isolation group
         ec2_client.modify_instance_attribute(
             InstanceId=instance_id,
             Groups=[isolation_sg_id]
@@ -37,7 +34,6 @@ def isolate_instance(alert, instance_id):
 
         logger.info(f"Isolated instance {instance_id}: replaced SGs {original_sgs} with {isolation_sg_id}")
 
-        # Log the response action
         store_response_log({
             "alert_id": alert.get("alert_id", ""),
             "action_type": "ec2_isolate",
@@ -75,11 +71,9 @@ def get_or_create_isolation_sg(instance_id):
     """Get or create a deny-all security group for isolation."""
     sg_name = "cloudsentinel-isolation"
 
-    # Get the VPC of the instance
     instance_info = ec2_client.describe_instances(InstanceIds=[instance_id])
     vpc_id = instance_info["Reservations"][0]["Instances"][0]["VpcId"]
 
-    # Check if isolation SG already exists in this VPC
     try:
         response = ec2_client.describe_security_groups(
             Filters=[
@@ -92,7 +86,6 @@ def get_or_create_isolation_sg(instance_id):
     except Exception:
         pass
 
-    # Create the isolation security group with no inbound or outbound rules
     response = ec2_client.create_security_group(
         GroupName=sg_name,
         Description="CloudSentinel isolation - no inbound or outbound traffic",
@@ -100,7 +93,6 @@ def get_or_create_isolation_sg(instance_id):
     )
     sg_id = response["GroupId"]
 
-    # Remove the default outbound rule
     ec2_client.revoke_security_group_egress(
         GroupId=sg_id,
         IpPermissions=[{

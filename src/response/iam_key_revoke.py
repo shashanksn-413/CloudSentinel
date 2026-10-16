@@ -13,8 +13,6 @@ def revoke_access_key(alert):
     """Disable an IAM user's access keys when compromise is detected."""
     actor = alert.get("actor", "")
     
-    # Extract username from ARN if needed
-    # ARN format: arn:aws:iam::123456789012:user/username
     if "user/" in actor:
         username = actor.split("user/")[-1]
     else:
@@ -25,7 +23,6 @@ def revoke_access_key(alert):
         return None
 
     try:
-        # List all access keys for the user
         response = iam_client.list_access_keys(UserName=username)
         keys_disabled = []
 
@@ -40,7 +37,6 @@ def revoke_access_key(alert):
                 keys_disabled.append(key_id)
                 logger.info(f"Disabled access key {key_id} for user {username}")
 
-        # Log the response action
         response_record = store_response_log({
             "alert_id": alert.get("alert_id", ""),
             "action_type": "iam_key_revoke",
