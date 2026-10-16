@@ -1,6 +1,5 @@
 from src.shared.constants import MITRE_MAPPING
 
-# In-memory tracker for known IPs per access key
 known_ips = {}
 
 
@@ -9,7 +8,6 @@ def evaluate(event):
     detail = event.get("detail", {})
     user_identity = detail.get("userIdentity", {})
 
-    # Only trigger on access key based authentication
     if user_identity.get("type") != "IAMUser":
         return None
 
@@ -21,18 +19,15 @@ def evaluate(event):
     source_ip = detail.get("sourceIPAddress", "unknown")
     event_name = detail.get("eventName", "unknown")
 
-    # Skip AWS internal service calls
     if source_ip in ["AWS Internal", "amazonaws.com"]:
         return None
 
-    # Check if this IP is new for this access key
     if access_key_id not in known_ips:
         known_ips[access_key_id] = set()
 
     if source_ip in known_ips[access_key_id]:
         return None
 
-    # First time seeing this IP — only alert if we already have history
     is_first_ever = len(known_ips[access_key_id]) == 0
     known_ips[access_key_id].add(source_ip)
 

@@ -3,7 +3,6 @@ from src.shared.constants import (
     MITRE_MAPPING, S3_ENUM_THRESHOLD, S3_ENUM_WINDOW_MINUTES
 )
 
-# In-memory tracker for S3 list calls
 s3_list_tracker = {}
 
 S3_ENUM_ACTIONS = [
@@ -38,7 +37,6 @@ def evaluate(event):
 
     s3_list_tracker[tracker_key].append(now)
 
-    # Remove old entries outside the window
     s3_list_tracker[tracker_key] = [
         t for t in s3_list_tracker[tracker_key] if t > window_start
     ]

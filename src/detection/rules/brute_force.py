@@ -3,7 +3,6 @@ from src.shared.constants import (
     MITRE_MAPPING, BRUTE_FORCE_THRESHOLD, BRUTE_FORCE_WINDOW_MINUTES
 )
 
-# In-memory tracker for login failures (resets per Lambda cold start)
 login_failures = {}
 
 
@@ -19,23 +18,19 @@ def evaluate(event):
     if response.get("ConsoleLogin") != "Failure":
         return None
 
-    # Extract actor info
     user_identity = detail.get("userIdentity", {})
     actor = user_identity.get("arn", user_identity.get("userName", "unknown"))
     source_ip = detail.get("sourceIPAddress", "unknown")
     event_time = detail.get("eventTime", datetime.now(timezone.utc).isoformat())
 
-    # Track failures per actor
     now = datetime.now(timezone.utc)
     window_start = now - timedelta(minutes=BRUTE_FORCE_WINDOW_MINUTES)
 
     if actor not in login_failures:
         login_failures[actor] = []
 
-    # Add this failure
     login_failures[actor].append(now)
 
-    # Remove old entries outside the window
     login_failures[actor] = [
         t for t in login_failures[actor] if t > window_start
     ]
