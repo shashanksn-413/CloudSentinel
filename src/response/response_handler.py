@@ -1,7 +1,7 @@
 import json
 import logging
 from src.response.iam_key_revoke import revoke_access_key
-from src.response.ec2_isolate import isolate_instance
+from src.response.ec2_isolate import isolate_instance, find_instance_by_private_ip
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -38,12 +38,13 @@ def handle_response(alert):
             results.append(result)
 
         elif action == "ec2_isolate":
-            instance_id = alert.get("instance_id", "")
+            source_ip = alert.get("source_ip", "")
+            instance_id = alert.get("instance_id") or find_instance_by_private_ip(source_ip)
             if instance_id:
                 result = isolate_instance(alert, instance_id)
                 results.append(result)
             else:
-                logger.warning(f"No instance_id in alert for ec2_isolate action")
+                logger.warning(f"No EC2 instance in this account owns {source_ip}; skipping ec2_isolate")
 
     logger.info(f"Response complete for alert {alert.get('alert_id', '')}: {results}")
 

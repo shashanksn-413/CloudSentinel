@@ -9,6 +9,18 @@ logger.setLevel(logging.INFO)
 ec2_client = boto3.client("ec2", region_name="us-east-2")
 
 
+def find_instance_by_private_ip(ip_address):
+    """Find the EC2 instance in this account that owns a private IP address."""
+    response = ec2_client.describe_network_interfaces(
+        Filters=[{"Name": "addresses.private-ip-address", "Values": [ip_address]}]
+    )
+    for interface in response.get("NetworkInterfaces", []):
+        instance_id = interface.get("Attachment", {}).get("InstanceId")
+        if instance_id:
+            return instance_id
+    return None
+
+
 def isolate_instance(alert, instance_id):
     """Isolate an EC2 instance by replacing its security groups with a deny-all group."""
     if not instance_id:

@@ -32,6 +32,12 @@ def store_alert(alert_data):
     return item
 
 
+def save_alert(alert):
+    """Overwrite a stored alert with its latest triage and response fields."""
+    alerts_table.put_item(Item=alert)
+    return alert
+
+
 def store_actor_history(actor_id, alert_summary):
     """Track actor activity over time for stateful triage."""
     item = {
